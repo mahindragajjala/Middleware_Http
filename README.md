@@ -1,7 +1,5 @@
 # Middleware_Http
 
-### 🧠 Go Middleware Cheatsheet
-
 | Section | Topic                 | Summary                                                | Sample Code Snippet                               |
 | ------- | --------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | 1.1     | What is Middleware?   | A function that intercepts HTTP requests/responses.    | `func Middleware(next http.Handler) http.Handler` |
@@ -132,7 +130,3 @@
 
 ---
 
-✅ Tip: Always use logs + recovery middleware in production.
-✅ Tip: Group route-specific middlewares in Gin using `.Group()`.
-✅ Tip: Keep middleware chain order in mind; it's executed top-down.
-✅ Tip: Use context to share data across middleware and handlers.
