@@ -1,0 +1,99 @@
+CSRF (Cross-Site Request Forgery) is a web security vulnerability that allows an 
+attacker to trick a user into performing actions they didn’t intend to on a 
+different website where they’re already authenticated.
+
+
+
+WHY CSRF IS IMPLEMENTED ?
+- You log in to your bank in one tab: https://mybank.com
+- In another tab, you open a fake site: https://evil.com
+- That fake site sends a hidden request to https://mybank.com/transfer
+                              (e.g., transfer ₹50,000 to the attacker)
+- Your browser sends your bank cookies automatically
+    ✅ So the bank thinks it’s a real request from you
+- 💸 Your money is sent — without you even knowing.
+
+Client (Browser)
+   |
+   |-- [GET] /form -------------> Server
+   |                             |
+   |                         Middleware adds
+   |                       CSRF token in response
+   |                             |
+   |<------------- HTML + token (meta/header/hidden input)
+   |
+   |-- [POST] /form_submit ----> Server
+   |     (includes CSRF token)     |
+   |                               |
+   |                    Middleware verifies token
+   |                               |
+   |               Valid? ---> Yes: Continue handler
+   |                          No:  Reject with 403
+
+
+
+📌 Types of CSRF Token Placement
+
+Hidden form field (for HTML forms)
+                <input type="hidden" name="csrf_token" value="abc123">
+Custom HTTP Header (for JS clients)
+                fetch("/api/update", {
+                  method: "POST",
+                  headers: {
+                    "X-CSRF-Token": "abc123"
+                  }
+                });
+Meta tag in HTML for JS frameworks
+                <meta name="csrf-token" content="abc123">
+
+
+
+
+🧠 How Middleware Handles It?
+Responsibilities:
+     - Generate a CSRF token (once per session/user)
+     - Send token to the client
+     - On every sensitive request, verify:
+        - Token from cookie or header matches server copy
+        - Token is not expired
+     - If mismatch: abort with error
+
+
+
+                              package main
+                              
+                              import (
+                              	"fmt"
+                              	"net/http"
+                              
+                              	"github.com/gorilla/csrf"
+                              	"github.com/gorilla/mux"
+                              )
+                              
+                              func main() {
+                              	r := mux.NewRouter()
+                              
+                              	CSRF := csrf.Protect(
+                              		[]byte("32-byte-long-auth-key-should-be-secret"),
+                              		csrf.Secure(false), // Set true in production (HTTPS)
+                              	)
+                              
+                              	r.HandleFunc("/form", ShowForm)
+                              	r.HandleFunc("/submit", SubmitForm)
+                              
+                              	http.ListenAndServe(":8080", CSRF(r))
+                              }
+                              
+                              func ShowForm(w http.ResponseWriter, r *http.Request) {
+                              	// Injects the token into HTML as a template variable
+                              	w.Write([]byte(fmt.Sprintf(`
+                              		<form action="/submit" method="POST">
+                              			<input type="hidden" name="csrf_token" value="%s">
+                              			<input type="submit" value="Submit" />
+                              		</form>
+                              	`, csrf.Token(r))))
+                              }
+                              
+                              func SubmitForm(w http.ResponseWriter, r *http.Request) {
+                              	w.Write([]byte("Form submitted safely ✅"))
+                              }

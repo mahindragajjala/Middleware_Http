@@ -1,0 +1,105 @@
+🔄 What Is Middleware Execution Flow?
+                                      Middleware Execution Flow refers to the sequence 
+                                      of steps a request goes through from
+                                      the moment it enters the server until a 
+                                      response is returned to the client. 
+
+Middleware plays a crucial role in 
+                                  pre-processing, 
+                                  routing, and 
+                                  post-processing that request.
+
+
+NET/HTTP
+
+Middleware in net/http wraps http.Handler functions in layers.
+
+                          Client Request
+                             ↓
+                          Outer Middleware (1st layer)
+                             ↓
+                          Next Middleware (2nd layer)
+                             ↓
+                          Final Handler (business logic)
+                             ↑
+                          Returns up through middleware chain
+                             ↑
+                          Response sent to Client
+                          
+                          
+                          LoggingMiddleware(
+                              AuthMiddleware(
+                                  HelloHandler
+                              )
+                          )
+📜 Step-by-step Flow:
+                          LoggingMiddleware runs first (logs request path)
+                          Calls next.ServeHTTP → passes to AuthMiddleware
+                          AuthMiddleware checks token and passes to handler
+                          HelloHandler sends response
+                          Control flows back up the chain for post-processing
+
+
+
+GIN
+
+Gin supports native chaining using c.Next() and abort flow using c.Abort().
+
+                        r.Use(LoggerMiddleware())  // 1st
+                        r.Use(AuthMiddleware())    // 2nd
+                        r.GET("/home", handler)    // Final handler
+                        
+                        Client Request
+                           ↓
+                        Global Middleware 1 (Logger)
+                           ↓
+                        Global Middleware 2 (Auth)
+                           ↓
+                        Route Handler
+                           ↑
+                        Post-processing of Auth (if any)
+                           ↑
+                        Post-processing of Logger (if any)
+                           ↑
+                        Response sent to Client
+
+
+🔁 Flow Control Keywords in Gin:
+        c.Next() → continue to next middleware or handler
+        c.Abort() → stop middleware chain and return immediately
+        c.AbortWithStatus() / c.AbortWithStatusJSON() → abort and respond with error
+        
+
+c.Next
+      func Logger() gin.HandlerFunc {
+      	return func(c *gin.Context) {
+      		log.Println("Logger: before")
+      		c.Next()
+      		log.Println("Logger: after")
+      	}
+      }
+      
+      func Auth() gin.HandlerFunc {
+      	return func(c *gin.Context) {
+      		if c.GetHeader("Authorization") != "valid" {
+      			c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+      			return
+      		}
+      		log.Println("Auth: passed")
+      		c.Next()
+      	}
+      }
+
+
+
+C.Abort
+        func AuthMiddleware() gin.HandlerFunc {
+        	return func(c *gin.Context) {
+        		if c.GetHeader("Authorization") != "valid-token" {
+        			c.JSON(401, gin.H{"error": "Unauthorized"})
+        			c.Abort() // stops the chain
+        			return
+        		}
+        		c.Next()
+        	}
+        }

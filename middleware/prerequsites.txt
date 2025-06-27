@@ -1,0 +1,10 @@
+To understand and write middleware in Go, you should know:
+
+✅ Basic Go Syntax	- To write any Go program
+✅ Functions and Closures - Middleware often uses functions returning other functions
+✅ Interfaces	- Middleware deals with http.Handler / gin.HandlerFunc
+✅ Go HTTP Server (net/http)	- Middleware wraps the HTTP request/response flow
+✅ Request & Response objects	- To manipulate headers, body, etc.
+✅ Context (context.Context) -	For request-scoped values and cancellation
+
+Once these are clear, you're ready for middleware.

@@ -1,0 +1,83 @@
+5.1_Centralized_Error_Handling_via_Middleware
+📌 Why Centralized Error Handling?
+Instead of writing if err != nil in every handler, a centralized middleware can:
+                                  Catch and handle runtime panics or expected errors
+                                  Format responses (JSON, HTML, etc.)
+                                  Log and trace errors consistently
+                                  Avoid code duplication
+                       
+
+                                package main
+                                
+                                import (
+                                	"log"
+                                	"net/http"
+                                
+                                	"github.com/gin-gonic/gin"
+                                )
+                                
+                                func CentralErrorHandler() gin.HandlerFunc {
+                                	return func(c *gin.Context) {
+                                		c.Next() // Execute handler
+                                
+                                		// Step 1: Check if errors were added to the context
+                                		errs := c.Errors
+                                		if len(errs) > 0 {
+                                			// Step 2: Log the error(s)
+                                			for _, e := range errs {
+                                				log.Printf("⚠️ Caught error: %v\n", e.Err)
+                                			}
+                                
+                                			// Step 3: Return a unified error response
+                                			c.JSON(http.StatusInternalServerError, gin.H{
+                                				"error": errs[0].Error(), // or a custom message
+                                			})
+                                		}
+                                	}
+                                }
+//✅ How to Trigger It in Handlers
+                                func SomeHandler(c *gin.Context) {
+                                	// Simulate some error
+                                	err := doSomething()
+                                	if err != nil {
+                                		c.Error(err) // Add error to gin.Context
+                                		return
+                                	}
+                                
+                                	c.JSON(http.StatusOK, gin.H{"message": "success"})
+                                }
+                                
+                                func doSomething() error {
+                                	return fmt.Errorf("something went wrong")
+                                }
+                                func main() {
+                                	router := gin.Default()
+                                
+                                	// 🔗 Attach error handling middleware globally
+                                	router.Use(CentralErrorHandler())
+                                
+                                	router.GET("/test", SomeHandler)
+                                
+                                	router.Run(":8080")
+                                }
+
+
+                      Handle Panics with Recovery Middleware
+      Gin already has gin.Recovery() to handle panics. You can write a custom panic recovery like:
+                    
+                        func CustomRecovery() gin.HandlerFunc {
+                      	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+                      		log.Printf("🔥 Panic recovered: %v\n", recovered)
+                      		c.JSON(http.StatusInternalServerError, gin.H{
+                      			"error": "internal server error",
+                      		})
+                      	})
+                      }
+
+Log stack traces for panics.
+Separate user and internal error messages.
+Use c.Error(err).SetType(...) for categorizing errors.
+Optionally return error codes (error_code, trace_id) in response.
+
+
+

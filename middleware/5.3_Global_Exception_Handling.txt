@@ -1,0 +1,56 @@
+5.3_Global_Exception_Handling
+
+What Is Global Exception Handling?
+
+Global Exception Handling is a centralized mechanism that:
+                          Catches all errors and panics
+                          Ensures uniform error responses
+                          Logs errors consistently
+                          Prevents duplicate try-catch-like logic in every route
+                          In Gin, this is usually implemented through middleware.
+
+why is it important ?
+ Benefit                     Explanation                                        
+ 🔄 Centralized error logic   One place to maintain all error responses          
+ ✅ Consistent API output     Same format: `{ "error": "Something went wrong" }` 
+ 🔐 Avoids internal leaks     Prevent stack traces going to user                 
+ 🛡️ Server resilience         Handles panics gracefully without crashing server  
+
+
+Step 1: Define Custom Error Handler Middleware
+                      func GlobalExceptionHandler() gin.HandlerFunc {
+                      	return func(c *gin.Context) {
+                      		// Continue down the chain
+                      		c.Next()
+                      
+                      		// Check if any errors were set
+                      		if len(c.Errors) > 0 {
+                      			// You can log all errors
+                      			for _, e := range c.Errors {
+                      				log.Printf("🚨 Error: %v", e.Err)
+                      			}
+                      
+                      			// Send a uniform response
+                      			c.JSON(http.StatusInternalServerError, gin.H{
+                      				"error": "internal server error",
+                      			})
+                      			c.Abort()
+                      		}
+                      	}
+                      }
+Step 2: Use It in Your Main Setup
+                      func main() {
+                      	r := gin.New()
+                      
+                      	// Global error handling middleware
+                      	r.Use(GlobalExceptionHandler())
+                      
+                      	// You can also add panic recovery if needed
+                      	r.Use(gin.Recovery())
+                      
+                      	r.GET("/fail", func(c *gin.Context) {
+                      		c.Error(fmt.Errorf("database connection failed")) // Manually register error
+                      	})
+                      
+                      	r.Run(":8080")
+                      }

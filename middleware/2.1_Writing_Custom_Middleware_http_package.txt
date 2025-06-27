@@ -1,0 +1,66 @@
+Writing Custom Middleware (Standard `net/http`)
+
+
+Creating custom middleware in Go using the standard net/http package involves 
+wrapping an http.Handler with another function that performs logic before and/or 
+after calling the next handler.
+
+STRUCTURE OF THE CUSTOM MIDDLEWARE
+                                    func MyMiddleware(next http.Handler) http.Handler {
+                                        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                                            // Pre-processing logic (before calling next handler)
+                                            log.Println("Before handler")
+                                    
+                                            // Call the next handler
+                                            next.ServeHTTP(w, r)
+                                    
+                                            // Post-processing logic (after calling next handler)
+                                            log.Println("After handler")
+                                        })
+                                    }
+
+Logging Middleware
+                  package main
+                  
+                  import (
+                      "log"
+                      "net/http"
+                      "time"
+                  )
+                  
+                  func LoggingMiddleware(next http.Handler) http.Handler {
+                      return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                          start := time.Now()
+                          log.Printf("Started %s %s", r.Method, r.URL.Path)
+                  
+                          next.ServeHTTP(w, r)
+                  
+                          log.Printf("Completed %s in %v", r.URL.Path, time.Since(start))
+                      })
+                  }
+Authentication Middleware
+                  func AuthMiddleware(next http.Handler) http.Handler {
+                      return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                          token := r.Header.Get("Authorization")
+                          if token != "Bearer secret" {
+                              http.Error(w, "Forbidden", http.StatusForbidden)
+                              return
+                          }
+                          next.ServeHTTP(w, r)
+                      })
+                  }
+Applying Middleware
+                  func HelloHandler(w http.ResponseWriter, r *http.Request) {
+                      w.Write([]byte("Hello, world!"))
+                  }
+                  
+                  func main() {
+                      finalHandler := http.HandlerFunc(HelloHandler)
+                  
+                      // Apply middlewares
+                      handlerWithMiddleware := LoggingMiddleware(AuthMiddleware(finalHandler))
+                  
+                      http.Handle("/", handlerWithMiddleware)
+                      log.Println("Server running at :8080")
+                      http.ListenAndServe(":8080", nil)
+                  }

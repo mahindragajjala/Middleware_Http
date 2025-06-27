@@ -1,0 +1,57 @@
+7.1_Popular_Middleware_Packages_in_Go
+
+Middleware packages in Go (especially in web frameworks like Gin, Echo, Chi, or Fiber) 
+are used to handle common cross-cutting concerns such as:
+                                    Authentication
+                                    Logging
+                                    CORS
+                                    Rate Limiting
+                                    Recovery from panics
+                                    GZIP compression
+                                    Metrics collection
+Here are popular middleware packages used in Go, categorized by their purpose:
+                1. Gin Framework Middleware Packages
+                    a. github.com/gin-contrib/cors
+                       Purpose: Handle Cross-Origin Resource Sharing (CORS).
+                    b. github.com/gin-contrib/logger
+                       Purpose: Structured logging.
+                    c. github.com/gin-contrib/secure
+                       Purpose: Add secure headers (HTTPS, XSS, CSP, etc.)
+                    d. github.com/gin-contrib/gzip
+                       Purpose: GZIP compress HTTP responses.
+                    e. github.com/gin-contrib/sessions
+                       Purpose: Manage sessions using cookies or Redis.
+                
+                2. Generic/Standard Middleware Packages
+                    a. github.com/go-chi/chi/middleware
+                    Used with: chi router, but can be adapted.
+                    b. github.com/urfave/negroni
+                    Middleware stack handler, used with net/http.
+                    c. github.com/didip/tollbooth
+                    Purpose: Rate limiting.
+                
+                3. Authentication & Authorization
+                    a. github.com/appleboy/gin-jwt/v2
+                    JWT-based auth middleware for Gin.
+                
+                4. Prometheus Monitoring
+                    a. github.com/zsais/go-gin-prometheus
+                    Integrates Prometheus metrics into Gin.
+                
+                5. Recovery & Error Handling
+                    a. github.com/gin-contrib/recovery
+                    Auto-handles panics and sends 500 status.
+
+
+
+ Use Case            Middleware Package                                 
+ CORS                `github.com/gin-contrib/cors`                      
+ Logging             `github.com/gin-contrib/logger`, `chi/middleware`  
+ Secure Headers      `github.com/gin-contrib/secure`, `unrolled/secure` 
+ Compression         `github.com/gin-contrib/gzip`                      
+ Rate Limiting       `github.com/didip/tollbooth`                       
+ Sessions            `github.com/gin-contrib/sessions`                  
+ JWT Authentication  `github.com/appleboy/gin-jwt/v2`                   
+ Prometheus Metrics  `github.com/zsais/go-gin-prometheus`               
+ Panic Recovery      `gin.Recovery()`, `chi/middleware.Recoverer`       
+

@@ -1,0 +1,72 @@
+3.1_Introduction_to_Auth_Middleware
+          
+            Authentication middleware is used to verify whether the incoming request 
+            is from a legitimate source before allowing access to protected routes.
+
+
+🧠 What is Authentication Middleware?
+            
+            It is a Gin middleware that checks for:
+                      A valid token, API key, or session
+                      Typically in the Authorization header
+            
+            If authentication fails, the middleware blocks the request and returns an error.
+            If it passes, the request proceeds to the next handler.
+
+🔐 Real-World Use Case:
+      A mobile app sends a request to get user profile data.
+      But only logged-in users should be allowed.
+      So, Auth middleware checks if a valid token exists in the request headers.
+
+
+                              package main
+                              
+                              import (
+                                  "github.com/gin-gonic/gin"
+                                  "net/http"
+                              )
+                              
+                              // AuthMiddleware checks for a valid token in the Authorization header
+                              func AuthMiddleware() gin.HandlerFunc {
+                                  return func(c *gin.Context) {
+                                      token := c.GetHeader("Authorization")
+                              
+                                      // Very basic token check (replace with JWT/DB in real apps)
+                                      if token != "Bearer secret-token" {
+                                          c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                                          c.Abort() // Stop request processing
+                                          return
+                                      }
+                              
+                                      c.Next() // Valid token, continue to the handler
+                                  }
+                              }
+Test:
+                              package main
+                              
+                              import (
+                                  "github.com/gin-gonic/gin"
+                                  "net/http"
+                              )
+                              
+                              func main() {
+                                  r := gin.Default()
+                              
+                                  // Apply AuthMiddleware globally or to specific routes
+                                  authorized := r.Group("/secure")
+                                  authorized.Use(AuthMiddleware())
+                                  {
+                                      authorized.GET("/profile", func(c *gin.Context) {
+                                          c.JSON(http.StatusOK, gin.H{"user": "Mahindra", "role": "admin"})
+                                      })
+                                  }
+                              
+                                  r.GET("/", func(c *gin.Context) {
+                                      c.String(http.StatusOK, "Welcome! No auth needed here.")
+                                  })
+                              
+                                  r.Run(":8080")
+                              }
+with token :    curl -H "Authorization: Bearer secret-token" http://localhost:8080/secure/profile
+without token : curl http://localhost:8080/secure/profile
+

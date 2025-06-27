@@ -1,0 +1,21 @@
+Definition:
+            Authorization is the process of determining what resources a 
+            user has access to after they’ve been authenticated.
+
+Purpose:
+        To control permissions and access levels for different users.
+
+Real-life Analogy:
+              Once you unlock the building (authentication), authorization determines which rooms you’re allowed
+              to enter (e.g., employees vs. admin).
+
+In Programming:
+                After a user logs in, check if they can access:
+                                                                /admin/dashboard
+                                                                GET /api/data
+                                                                perform DELETE on a resource
+Examples:
+          Role-based access control (RBAC)
+          Access Control Lists (ACLs)
+          Permissions like isAdmin, canEdit, canDelete
+

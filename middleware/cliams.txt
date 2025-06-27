@@ -1,0 +1,36 @@
+cliams:
+
+This defines a custom struct in Go named Claims. 
+It's used to represent the payload (i.e., data) stored inside the JWT token.
+
+type Claims struct {
+    Username string `json:"username"`
+    Role     string `json:"role"`
+    jwt.RegisteredClaims
+}
+
+Why is it needed?
+                      JWT = Header + Payload + Signature
+This struct (Claims) is used to define the structure of the payload:
+            The data you want to embed inside the token
+            Things like: Username, Role, Expiry, IssuedAt, etc.
+This struct is attached to the token when you sign it, and 
+it's extracted from the token when you verify it.
+
+1. Username string
+        This stores the username of the logged-in user.
+        It helps the server know who is making the request.
+
+2. Role string
+        This stores the role of the user: "admin", "user", "viewer", etc.
+        It’s used for authorization, i.e., controlling access to routes.
+
+3. jwt.RegisteredClaims
+          This is a struct from the JWT library.
+          It includes standard fields used in JWT tokens like:
+          ExpiresAt — when token expires
+          IssuedAt — when it was created
+          NotBefore — token not valid before this time
+          Subject, Issuer, etc.
+
+🔁 By embedding it in your Claims struct, you inherit all those fields for use.

@@ -1,0 +1,61 @@
+4.4_Adding_Custom_Fields_in_Context
+
+Adding custom fields in context means injecting additional metadata or 
+custom values (e.g., trace IDs, roles, tenant info, tokens, etc.) 
+into the request lifecycle, so that downstream middleware or handlers can access them.
+
+This is done using Gin’s Context.Set(key, value) method and retrieved using Context.Get(key).
+
+                                    package main
+                                    
+                                    import (
+                                    	"github.com/gin-gonic/gin"
+                                    	"github.com/google/uuid"
+                                    )
+                                    
+                                    // Middleware to add custom fields to context
+                                    func AddCustomContextFields() gin.HandlerFunc {
+                                    	return func(c *gin.Context) {
+                                    		// Generate a random trace ID
+                                    		traceID := uuid.New().String()
+                                    
+                                    		// Set custom fields in context
+                                    		c.Set("traceID", traceID)
+                                    		c.Set("role", "admin")
+                                    
+                                    		// Call next handler
+                                    		c.Next()
+                                    	}
+                                    }
+                                    
+                                    // Handler that reads the injected fields
+                                    func GetDashboard(c *gin.Context) {
+                                    	traceID, _ := c.Get("traceID")
+                                    	role, _ := c.Get("role")
+                                    
+                                    	c.JSON(200, gin.H{
+                                    		"message":  "Dashboard access granted",
+                                    		"traceID":  traceID,
+                                    		"userRole": role,
+                                    	})
+                                    }
+                                    
+                                    func main() {
+                                    	router := gin.Default()
+                                    
+                                    	// Apply custom context injection middleware
+                                    	router.Use(AddCustomContextFields())
+                                    
+                                    	router.GET("/dashboard", GetDashboard)
+                                    
+                                    	router.Run(":8080")
+                                    }
+
+
+Client ──> AddCustomContextFields()
+            ├── c.Set("traceID", ...)
+            └── c.Set("role", ...)
+          ↓
+      GET /dashboard ──> GetDashboard()
+                          ├── c.Get("traceID")
+                          └── c.Get("role")

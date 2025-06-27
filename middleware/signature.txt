@@ -1,0 +1,135 @@
+🔑 The server signs the JWT — always.
+
+
+var jwtKey = []byte("my_secret_key") // Keep this safe in env
+
+This line declares and initializes a variable jwtKey of type 
+[]byte (a byte slice) containing the string "my_secret_key".
+
+This key is used to sign and verify JWT tokens securely.
+
+📌 JWT Background
+              - JWT (JSON Web Token) is a token format often used for 
+                authentication and authorization.
+              - JWT tokens are signed so that no one can tamper with their contents.
+              - Signing is done using:
+                  - HS256 (HMAC + SHA256) → needs a secret key
+                  - or RSA → needs private/public keys
+
+
+💡 Purpose of jwtKey:
+    SIGNING the token:
+           token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+           tokenString, err := token.SignedString(jwtKey) // uses this key
+    VERIFYING the token later:
+        token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+            return jwtKey, nil
+        })
+        
+The jwtKey must match exactly in both signing and verifying,
+or the token will be invalid.
+
+
+
+
+⚠️ Why []byte, not just string?
+The JWT library expects the signing key to be a byte slice, not a plain string.
+Go strings are immutable and not suitable for cryptographic operations directly.
+
+
+
+
+
+🔄 FLOW OF JWT AUTHENTICATION + AUTHORIZATION
+ Action                         Who Does It          Explanation                                                                            
+ 🧑‍💻 Login Request        Client → Server  Client (browser, CLI, mobile) sends credentials (username/password) to the server.     
+ ✅ Authenticate + Sign JWT  Server           Server checks credentials, creates a JWT token, and signs it with a secret key.    
+ 📩 Send JWT to Client      Server → Client  Server sends back the signed JWT. Client stores it (memory/localStorage/cookie).       
+ 🔐 Authorized Request      Client → Server  Client includes JWT in the Authorization header when calling protected routes.     
+ ✅ Verify JWT               Server           Server reads the token, verifies the signature using the same secret key.          
+ 🔓 Authorize Access        Server           If valid and user has permission (like role = admin), server lets the request through. 
+
+
+
+
+✅ What is Signing a JWT?
+The server creates a token:
+                            {
+                              "username": "mahindra",
+                              "role": "admin"
+                            }
+        It signs it using a secret key (jwtKey) to create something like:
+                                      eyJhbGciOi...<HEADER>.<PAYLOAD>.<SIGNATURE>
+        Signature = Cryptographic hash of header + payload using secret key
+
+🔐 Purpose of signing:
+        Ensures that the token cannot be changed by anyone (client, hacker, etc.)
+        If someone changes even one letter in the payload, the signature breaks.
+
+
+
+
+
+🔎 What is Verifying a JWT?
+When the client sends back the token in a request:
+                Authorization: Bearer eyJhbGciOi...<HEADER>.<PAYLOAD>.<SIGNATURE>
+                The server takes the token, extracts the header and payload,
+
+Then recalculates the signature using the same jwtKey secret,
+
+Compares the new signature with the token’s signature:
+
+✅ If match → token is valid, untampered, and trusted
+❌ If mismatch → token is invalid or forged
+
+
+
+
+🔐 What does “signing” a JWT mean?
+It's like putting a seal on the token to say:
+                    "I, the server, confirm this token is valid and untampered."
+
+
+
+
+┌────────────┐          ┌────────────────────────────────────┐
+│   Client   │          │              Server                │
+└────┬───────┘          └────────────────────────────────────┘
+     │
+     │ 1. Sends login credentials (username/password)
+     ├─────────────────────────────────────────────────────►
+     │                POST /login { "username", "password" }
+     │
+     │
+     │ 2. Validates credentials
+     │    ┌────────────────────────────────────────────┐
+     │    │ If valid:                                  │
+     │    │ - Create JWT token                         │
+     │    │ - Sign it using secret key (jwtKey)        │
+     │    └────────────────────────────────────────────┘
+     │
+     │ 3. Sends signed JWT token
+     ◄─────────────────────────────────────────────────────┤
+     │       { "token": "eyJhbGciOiJIUzI1NiIsInR..." }      │
+     │
+     │
+     │ 4. Client stores the token (in memory, cookie, etc.)
+     │
+     │
+     │ 5. Sends protected request with token in header
+     ├─────────────────────────────────────────────────────►
+     │   GET /admin/dashboard                              │
+     │   Authorization: Bearer <JWT token>                 │
+     │
+     │
+     │ 6. Server verifies the token:
+     │    - Check signature using secret key
+     │    - Check expiry time
+     │    - Check user role (authorization)
+     │
+     │ 7. If all valid, responds with protected resource
+     ◄─────────────────────────────────────────────────────┤
+     │     { "message": "Welcome Admin Mahindra" }         │
+     │
+     │
+     │ ✨ DONE – Secured authentication + role-based access

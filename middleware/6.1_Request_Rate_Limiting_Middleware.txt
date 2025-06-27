@@ -1,0 +1,93 @@
+6.1_Request_Rate_Limiting_Middleware
+Rate limiting middleware restricts the number of requests 
+a client can make in a given time period to prevent abuse, 
+reduce load, and ensure fair usage.
+
+For example:
+Allow 5 requests per minute from a single IP.
+Throttle high-frequency clients to protect the server.
+
+
+Use Cases
+Preventing brute-force attacks.
+Throttling API usage in free-tier plans.
+Protecting downstream services from overload.
+
+package main
+import (
+	"time"
+	"sync"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+/*
+RateLimiter: Tracks requests per IP.
+rateLimitMiddleware: Gin middleware that limits incoming requests.
+*/
+type RateLimiter struct {
+	visitors map[string]*Visitor
+	mu       sync.Mutex
+	rate     int           // requests allowed
+	window   time.Duration // time window
+}
+
+type Visitor struct {
+	lastSeen time.Time
+	requests int
+}
+func (r *RateLimiter) rateLimitMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		clientIP := c.ClientIP()
+		now := time.Now()
+
+		r.mu.Lock()
+		v, exists := r.visitors[clientIP]
+
+		if !exists  now.Sub(v.lastSeen) > r.window {
+			r.visitors[clientIP] = &Visitor{lastSeen: now, requests: 1}
+			r.mu.Unlock()
+			c.Next()
+			return
+		}
+
+		if v.requests >= r.rate {
+			r.mu.Unlock()
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error": "Rate limit exceeded. Try again later.",
+			})
+			return
+		}
+
+		v.requests++
+		v.lastSeen = now
+		r.mu.Unlock()
+		c.Next()
+	}
+}
+func main() {
+	r := gin.Default()
+
+	limiter := &RateLimiter{
+		visitors: make(map[string]*Visitor),
+		rate:     5,               // max 5 requests
+		window:   1 * time.Minute, // per minute
+	}
+
+	r.Use(limiter.rateLimitMiddleware())
+
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
+
+	r.Run(":8080")
+}
+
+ Client IP      Allowed Requests (per minute)  Outcome                       
+ `192.168.1.1`  5                              ✅ First 5 requests allowed    
+                >5                             ❌ 6th+ request → 429 returned 
+
+  
+
+
+

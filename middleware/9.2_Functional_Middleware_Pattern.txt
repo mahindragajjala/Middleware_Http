@@ -1,0 +1,22 @@
+🧠 What is the Functional Middleware Pattern?
+The Functional Middleware Pattern:
+- Is a way of wrapping HTTP handlers with other functions to add reusable behavior.
+- It is inspired by the functional programming concept of function decorators.
+- Think of it as:
+                    Wrapper(originalHandler) => newHandler with extra behavior
+
+📌 In Go, this means writing functions that return other functions (http.Handler or 
+gin.HandlerFunc).
+
+Functional Middleware = Function Decorator
+                                func Middleware(next http.HandlerFunc) http.HandlerFunc {
+                                    return func(w http.ResponseWriter, r *http.Request) {
+                                        // Before
+                                        ...
+                                        next(w, r) // call next handler
+                                        // After
+                                        ...
+                                    }
+                                }
+
+

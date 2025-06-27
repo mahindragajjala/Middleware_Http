@@ -1,0 +1,98 @@
+9.5_Middleware_per_Group/Route_Gin_Route_Groups
+
+In Gin, Route Groups allow you to group related routes 
+under a common path prefix and attach group-specific middleware.
+
+This is powerful when you want different middleware pipelines for 
+different sections of your API
+
+Let’s say you’re building an app with two user groups:
+          /admin → Needs authentication + logging
+          /public → Needs only rate limiting
+
+How to Create Route Groups with Middleware
+                      func AuthMiddleware() gin.HandlerFunc {
+                      	return func(c *gin.Context) {
+                      		token := c.GetHeader("Authorization")
+                      		if token != "admin-token" {
+                      			c.AbortWithStatusJSON(401, gin.H{"error": "unauthorized"})
+                      			return
+                      		}
+                      		c.Next()
+                      	}
+                      }
+                      
+                      func LoggerMiddleware() gin.HandlerFunc {
+                      	return func(c *gin.Context) {
+                      		log.Println("Request to:", c.FullPath())
+                      		c.Next()
+                      	}
+                      }
+                      
+                      func RateLimitMiddleware() gin.HandlerFunc {
+                      	return func(c *gin.Context) {
+                      		log.Println("Checking rate limit...")
+                      		// Simulate allow
+                      		c.Next()
+                      	}
+                      }
+✅ Step 2: Create Route Groups
+                      func main() {
+                      	r := gin.Default()
+                      
+                      	// Group 1: Admin
+                      	admin := r.Group("/admin")
+                      	admin.Use(AuthMiddleware(), LoggerMiddleware())
+                      	{
+                      		admin.GET("/dashboard", func(c *gin.Context) {
+                      			c.JSON(200, gin.H{"msg": "Welcome Admin"})
+                      		})
+                      		admin.GET("/users", func(c *gin.Context) {
+                      			c.JSON(200, gin.H{"msg": "User List"})
+                      		})
+                      	}
+                      
+                      	// Group 2: Public
+                      	public := r.Group("/public")
+                      	public.Use(RateLimitMiddleware())
+                      	{
+                      		public.GET("/home", func(c *gin.Context) {
+                      			c.JSON(200, gin.H{"msg": "Public Home"})
+                      		})
+                      		public.GET("/about", func(c *gin.Context) {
+                      			c.JSON(200, gin.H{"msg": "About Us"})
+                      		})
+                      	}
+                      
+                      	r.Run(":8080")
+                      }
+
+                             ┌────────────┐
+                             │   CLIENT   │
+                             └─────┬──────┘
+                                   ▼
+                          ┌──────────────────┐
+                          │   Gin Router     │
+                          └─────┬────────────┘
+                                ▼
+                   ┌────────────────────────────┐
+                   │ If URL starts with /admin  │
+                   └──────┬─────────────────────┘
+                          ▼
+                  [ AuthMiddleware ]
+                          ↓
+                  [ LoggerMiddleware ]
+                          ↓
+                  [ Handler (/dashboard, /users) ]
+                          ↓
+                       Response
+                  
+                   ┌────────────────────────────┐
+                   │ If URL starts with /public │
+                   └──────┬─────────────────────┘
+                          ▼
+                  [ RateLimitMiddleware ]
+                          ↓
+                  [ Handler (/home, /about) ]
+                          ↓
+                       Response

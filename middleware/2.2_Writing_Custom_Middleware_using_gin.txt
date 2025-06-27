@@ -1,0 +1,83 @@
+In Gin, a middleware is just a function with the signature:
+                                              func(c *gin.Context)
+You can run code before and after the actual handler using c.Next().
+
+                                              func MyMiddleware() gin.HandlerFunc {
+                                                  return func(c *gin.Context) {
+                                                      // Code before the handler
+                                                      log.Println("Before handler")
+                                              
+                                                      c.Next() // Calls the next handler (or middleware)
+                                              
+                                                      // Code after the handler
+                                                      log.Println("After handler")
+                                                  }
+                                              }
+Logging middleware
+                  func LoggingMiddleware() gin.HandlerFunc {
+                      return func(c *gin.Context) {
+                          start := time.Now()
+                  
+                          // Log method and path
+                          log.Printf("Started %s %s", c.Request.Method, c.Request.URL.Path)
+                  
+                          c.Next() // Call the next middleware/handler
+                  
+                          // After handler
+                          duration := time.Since(start)
+                          log.Printf("Completed %s in %v", c.Request.URL.Path, duration)
+                      }
+                  }
+Authentication middleware
+                  func AuthMiddleware() gin.HandlerFunc {
+                      return func(c *gin.Context) {
+                          token := c.GetHeader("Authorization")
+                  
+                          if token != "Bearer secret" {
+                              c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                              c.Abort() // Stop further handlers
+                              return
+                          }
+                          c.Next() // Valid token, continue
+                      }
+                  }
+Gin application with Middleware
+                  package main
+                  
+                  import (
+                      "github.com/gin-gonic/gin"
+                      "log"
+                      "net/http"
+                      "time"
+                  )
+                  
+                  func main() {
+                      r := gin.Default()
+                  
+                      // Apply middleware globally
+                      r.Use(LoggingMiddleware(), AuthMiddleware())
+                  
+                      r.GET("/", func(c *gin.Context) {
+                          c.String(http.StatusOK, "Hello, world!")
+                      })
+                  
+                      log.Println("Server running at :8080")
+                      r.Run(":8080")
+                  }
+
+
+flow of the middleware in the application
+                                      Client --> LoggingMiddleware --> AuthMiddleware --> Handler --> Response
+
+
+
+Request :
+            curl -H "Authorization: Bearer secret" http://localhost:8080
+
+
+Middleware features :
+                     Feature       How it works                                     
+                     `c.Next()`    Proceeds to the next handler in the chain        
+                     `c.Abort()`   Stops chain and sends response immediately       
+                     `c.Set(...)`  Store values in context (like storing user info) 
+                     `c.Get(...)`  Retrieve values from context                     

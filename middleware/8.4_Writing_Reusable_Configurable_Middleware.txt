@@ -1,0 +1,97 @@
+8.4_Writing_Reusable/Configurable_Middleware
+
+
+
+What is Configurable Middleware?
+A reusable/configurable middleware:
+Is a template function that behaves differently based on parameters/config you pass to it.
+Makes the middleware dynamic and flexible instead of hardcoding logic.
+
+Why Make Middleware Configurable?
+ Feature       Benefit                                                         
+ Reusable      Works in multiple scenarios with different settings             
+ Customizable  You can pass user-defined parameters (e.g., roles, rate limits) 
+ Cleaner code  No duplication, only logic parameters vary                      
+
+like :
+
+func MyMiddleware(config ConfigType) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Use config values dynamically
+		if config.SomeFlag {
+			// behavior A
+		} else {
+			// behavior B
+		}
+		c.Next()
+	}
+}
+
+Configurable Role-Based Auth Middleware
+                    type AuthConfig struct {
+                    	AllowedRoles []string
+                    }
+                    func RoleAuthMiddleware(config AuthConfig) gin.HandlerFunc {
+                    	return func(c *gin.Context) {
+                    		role := c.GetHeader("Role") // Simulate reading user role
+                    
+                    		for _, allowed := range config.AllowedRoles {
+                    			if role == allowed {
+                    				c.Next() // Role is allowed, continue
+                    				return
+                    			}
+                    		}
+                    		c.AbortWithStatusJSON(403, gin.H{"error": "Access Denied"})
+                    	}
+                    }
+                    func main() {
+                    	r := gin.Default()
+                    
+                    	adminOnly := RoleAuthMiddleware(AuthConfig{
+                    		AllowedRoles: []string{"admin"},
+                    	})
+                    
+                    	devAndAdmin := RoleAuthMiddleware(AuthConfig{
+                    		AllowedRoles: []string{"developer", "admin"},
+                    	})
+                    
+                    	r.GET("/admin", adminOnly, func(c *gin.Context) {
+                    		c.JSON(200, gin.H{"message": "Welcome Admin"})
+                    	})
+                    
+                    	r.GET("/dashboard", devAndAdmin, func(c *gin.Context) {
+                    		c.JSON(200, gin.H{"message": "Welcome Dev/Admin"})
+                    	})
+                    
+                    	r.Run()
+                    }
+ Rate Limiting Middleware with Config
+                    type RateLimitConfig struct {
+                    	MaxRequests int
+                    	Window      time.Duration
+                    }
+                    
+                    func RateLimiter(config RateLimitConfig) gin.HandlerFunc {
+                    	var mu sync.Mutex
+                    	var count = 0
+                    	var resetTime = time.Now().Add(config.Window)
+                    
+                    	return func(c *gin.Context) {
+                    		mu.Lock()
+                    		defer mu.Unlock()
+                    
+                    		if time.Now().After(resetTime) {
+                    			count = 0
+                    			resetTime = time.Now().Add(config.Window)
+                    		}
+                    
+                    		if count >= config.MaxRequests {
+                    			c.AbortWithStatusJSON(429, gin.H{"error": "Too many requests"})
+                    			return
+                    		}
+                    
+                    		count++
+                    		c.Next()
+                    	}
+                    }
+

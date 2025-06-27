@@ -1,0 +1,27 @@
+9.1_Decorator_Pattern_and_Middleware
+
+The Decorator Pattern is a structural design pattern that:
+        Lets you wrap objects or functions with additional behavior.
+        Behaves like a chain, where each layer adds something to the original.
+🧾 In Go, the decorator pattern often wraps functions with pre/post logic without 
+   changing their signature.
+
+
+                              Request
+                                ↓
+                              [ LoggerMiddleware ]
+                                ↓
+                              [ AuthMiddleware ]
+                                ↓
+                              [ YourHandler ]
+                                ↓
+                              Response Backward
+                                ↑
+                              [ AuthMiddleware Post ]
+                                ↑
+                              [ LoggerMiddleware Post ]
+
+
+Bread → Sauce → Cheese → Meat → Lettuce → Bread
+Each middleware wraps the handler like a layer — it adds behavior.
+

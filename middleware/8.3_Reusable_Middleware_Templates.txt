@@ -1,0 +1,126 @@
+🧠 What Is a Reusable Middleware Template?
+                A reusable middleware is a middleware function designed as a 
+                template or generic utility, so it can be reused across different routes, 
+                projects, or modules by simply plugging it in.
+
+Think of it like a "plugin" that adds specific behavior (e.g., logging, 
+rate limiting, authentication) without changing the handler code.
+
+Why Use Reusable Middleware?
+ Benefit          Description                                          
+ Reusability      Use the same middleware across routes/projects       
+ Maintainability  Logic is centralized and clean                       
+ Testability      Easy to test individual middleware                   
+ Scalability      Add/remove behavior by attaching/removing middleware 
+
+
+
+
+
+                                  LOGGER MIDDLEWARE
+func LoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		method := c.Request.Method
+
+		c.Next() // continue to next
+
+		duration := time.Since(start)
+		status := c.Writer.Status()
+		log.Printf("[%d] %s %s (%s)", status, method, path, duration)
+	}
+}
+HOW TO USE : r.Use(LoggerMiddleware())
+
+
+
+
+
+
+
+                                    CORS MIDDLEWARE 
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
+HOW TO USE : r.Use(CORSMiddleware())
+
+
+
+
+
+
+                        AUTHENTICATION TOKEN CHECK MIDDLEWARE:
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token != "valid-token" {
+			c.AbortWithStatusJSON(401, gin.H{"error": "unauthorized"})
+			return
+		}
+		c.Next()
+	}
+}
+HOW TO USE IT : r.GET("/secure", AuthMiddleware(), SecureHandler)
+
+
+
+
+
+                          REQUEST TIMINIG MIDDLEWARE
+func TimingMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		log.Printf("Request took %v", time.Since(start))
+	}
+}
+
+
+
+
+                      RECOVERY  MIDDLEWARE(GRACEFUL PANIC HANDLING)
+func RecoveryMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("Recovered from panic: %v", err)
+				c.AbortWithStatusJSON(500, gin.H{"error": "internal server error"})
+			}
+		}()
+		c.Next()
+	}
+}
+
+
+HOW TO REUSE THE MIDDLEWARES
+                              project/
+                              │
+                              ├── main.go
+                              └── middleware/
+                                  ├── logger.go
+                                  ├── cors.go
+                                  ├── auth.go
+                                  ├── recovery.go
+                                  └── rate_limit.go
+logger.go
+          package middleware
+          
+          func LoggerMiddleware() gin.HandlerFunc {
+          	// implementation here...
+          }
+main.go 
+          import "project/middleware"
+          
+          r.Use(middleware.LoggerMiddleware())

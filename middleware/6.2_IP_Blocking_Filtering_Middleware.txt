@@ -1,0 +1,88 @@
+6.2_IP_Blocking_/_Filtering_Middleware
+
+This middleware blocks or allows requests based on the client’s IP address.
+You use it when you want to:
+                          Deny access to suspicious IPs or attackers (e.g. from logs).
+                          Allow only specific IPs for internal/private routes.
+                          Enforce geo-blocking, VPN-blocking, or firewall-style rules at the application level.
+
+There are two types of filtering:
+                  Blacklist: Block specific IPs (deny list).
+                  Whitelist: Allow only certain IPs (allow list).
+
+ Scenario                   Action                       
+ DDOS protection            Blacklist IPs from bots      
+ Admin panel security       Whitelist only office IPs    
+ Geo/IP-based restrictions  Block certain countries      
+ Temporary blocks           Stop attackers from retrying 
+
+                    package main
+                    
+                    import (
+                    	"net/http"
+                    	"github.com/gin-gonic/gin"
+                    )
+                    
+                    func IPBlockerMiddleware(blacklist []string) gin.HandlerFunc {
+                    	// Create a map for faster lookups
+                    	blacklistMap := make(map[string]bool)
+                    	for _, ip := range blacklist {
+                    		blacklistMap[ip] = true
+                    	}
+                    
+                    	return func(c *gin.Context) {
+                    		clientIP := c.ClientIP()
+                    
+                    		if blacklistMap[clientIP] {
+                    			// Deny access to blacklisted IP
+                    			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+                    				"error": "Access denied for your IP",
+                    			})
+                    			return
+                    		}
+                    
+                    		// IP is allowed
+                    		c.Next()
+                    	}
+                    }
+
+                    func main() {
+                    	r := gin.Default()
+                    
+                    	// Example blacklist IPs
+                    	blacklist := []string{"192.168.1.100", "10.0.0.5"}
+                    
+                    	// Apply middleware
+                    	r.Use(IPBlockerMiddleware(blacklist))
+                    
+                    	// Routes
+                    	r.GET("/home", func(c *gin.Context) {
+                    		c.JSON(http.StatusOK, gin.H{"message": "Welcome!"})
+                    	})
+                    
+                    	r.Run(":8080")
+                    }
+
+
+🔹 func IPBlockerMiddleware(blacklist []string) gin.HandlerFunc
+    This function returns a middleware handler that checks if the request's IP is blocked.
+    Accepts a slice of blacklisted IPs.
+🔹 blacklistMap := make(map[string]bool)
+    We convert the slice to a map for O(1) lookup time.
+    Much faster than looping through a slice.
+🔹 clientIP := c.ClientIP()
+    Gets the real IP of the client making the request.
+    Gin extracts it from headers like X-Real-IP, X-Forwarded-For, or RemoteAddr.
+🔹 if blacklistMap[clientIP] { ... }
+    If the IP is in the blacklist:
+    Block the request.
+    Respond with 403 Forbidden and a message.
+    Use c.AbortWithStatusJSON() to stop further middleware or route handlers.
+🔹 c.Next()
+    If not blacklisted, continue to the next handler.
+
+
+
+                        - Block based on CIDR or IP ranges?
+                        - Pull IPs dynamically from a file or database?
+                        - Work with Redis for a distributed version?

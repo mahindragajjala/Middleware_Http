@@ -1,0 +1,52 @@
+The net/http standard library
+The Gin web framework
+
+IN NET/HTTP PACKAGE 
+              In the net/http standard package, middleware is implemented by writing
+              a function that takes in an http.Handler and returns a new http.Handler.
+
+
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request path: %s", r.URL.Path)
+		next.ServeHTTP(w, r) // call the next handler in chain
+	})
+}
+
+USING IN THE CODE
+                func HelloHandler(w http.ResponseWriter, r *http.Request) {
+                	fmt.Fprintln(w, "Hello, World!")
+                }
+                
+                func main() {
+                	mux := http.NewServeMux()
+                	mux.Handle("/", LoggingMiddleware(http.HandlerFunc(HelloHandler)))
+                	http.ListenAndServe(":8080", mux)
+                  }
+    🟡 Role of Middleware Here:
+          Logs the request path before it reaches the main HelloHandler.
+
+IN GIN PACKAGE
+          func AuthMiddleware() gin.HandlerFunc {
+          	return func(c *gin.Context) {
+          		token := c.GetHeader("Authorization")
+          		if token != "valid-token" {
+          			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+          			return
+          		}
+          		c.Next() // move to the next middleware/handler
+          	}
+          }
+USING MIDDLEWARE
+          r := gin.Default() // includes Logger + Recovery middleware
+          r.Use(AuthMiddleware())
+          
+          r.GET("/secure", func(c *gin.Context) {
+          	c.JSON(http.StatusOK, gin.H{"message": "Welcome!"})
+          })
+🟢 Role of Middleware in Gin:
+        Filters unauthorized users before hitting /secure.
+        Logs or modifies the request.
+        Recovers from panic errors (if using built-in middleware like 
+        gin.Recovery()).
+

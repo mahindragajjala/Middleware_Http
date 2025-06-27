@@ -1,0 +1,43 @@
+1.1 What is Middleware?
+
+Definition:
+            Middleware is a function or a set of functions that sit between
+            the incoming request from a client and the final handler 
+            (or response generator) on the server. 
+            
+            It is used to intercept, 
+            modify, process, or even reject HTTP requests/responses before 
+            they reach the final endpoint or leave the server.
+
+Key Characteristics of Middleware:
+
+Interception: Middleware can intercept HTTP requests and responses.
+Processing: Middleware can modify the request (e.g., add headers, 
+            decode tokens) or perform actions like logging, authentication, etc.
+
+Chainable: Middleware is often designed to be chained or 
+            stacked—each middleware passes control to the next one.
+
+Reusability: Middleware functions are reusable across different routes and
+              applications.
+
+Real-World Analogy:
+Think of middleware like airport security:
+A traveler (HTTP request) enters the airport (server).
+
+Before reaching the plane (endpoint), the traveler passes through 
+multiple checks: ticket verification, luggage scan, identity check.
+
+Each of these checks represents middleware—processing and 
+validating the traveler before they are allowed to continue.
+
+Common Uses of Middleware:
+                      Authentication & Authorization
+                      Logging
+                      Request Validation
+                      Rate Limiting
+                      CORS Handling
+                      Compression
+                      Error Handling
+                      Session Management
+

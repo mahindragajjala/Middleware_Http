@@ -1,0 +1,91 @@
+🔍 What Does Execution Order Mean?
+In the Gin framework (and similar web frameworks), when you chain multiple middlewares for a route, they execute in a specific order:
+
+🚀 Execution Flow:
+Middleware 1 (Pre-processing)
+Middleware 2 (Pre-processing)
+
+Final Handler
+Middleware N (Post-processing)
+Middleware 1 (Post-processing)
+
+🔁 Gin Middleware Life Cycle:
+Each middleware can:
+                    Do something before the request reaches the final handler.
+                    Call c.Next() to pass control to the next.
+                    Do something after the next handler/middleware returns.
+
+                                  package main
+                                  
+                                  import (
+                                  	"log"
+                                  	"github.com/gin-gonic/gin"
+                                  )
+                                  
+                                  func Middleware1() gin.HandlerFunc {
+                                  	return func(c *gin.Context) {
+                                  		log.Println("👉 M1 - Before c.Next()")
+                                  		c.Next()
+                                  		log.Println("👈 M1 - After c.Next()")
+                                  	}
+                                  }
+                                  
+                                  func Middleware2() gin.HandlerFunc {
+                                  	return func(c *gin.Context) {
+                                  		log.Println("👉 M2 - Before c.Next()")
+                                  		c.Next()
+                                  		log.Println("👈 M2 - After c.Next()")
+                                  	}
+                                  }
+                                  
+                                  func Handler(c *gin.Context) {
+                                  	log.Println("🎯 Handler Executed")
+                                  	c.JSON(200, gin.H{"message": "ok"})
+                                  }
+                                  
+                                  func main() {
+                                  	r := gin.Default()
+                                  	r.GET("/flow", Middleware1(), Middleware2(), Handler)
+                                  	r.Run(":8080")
+                                  }
+
+
+output :
+        👉 M1 - Before c.Next()
+        👉 M2 - Before c.Next()
+        🎯 Handler Executed
+        👈 M2 - After c.Next()
+        👈 M1 - After c.Next()
+
+
+                                Request ↓
+                                
+                                ┌──────────────────────────┐
+                                │ Middleware 1             │
+                                │ → Before c.Next()        │
+                                └─────┬────────────────────┘
+                                      │
+                                      ▼
+                                ┌──────────────────────────┐
+                                │ Middleware 2             │
+                                │ → Before c.Next()        │
+                                └─────┬────────────────────┘
+                                      │
+                                      ▼
+                                ┌──────────────────────────┐
+                                │     FINAL HANDLER        │
+                                └─────┬────────────────────┘
+                                      │
+                                      ▼
+                                ┌──────────────────────────┐
+                                │ Middleware 2             │
+                                │ ← After c.Next()         │
+                                └─────┬────────────────────┘
+                                      │
+                                      ▼
+                                ┌──────────────────────────┐
+                                │ Middleware 1             │
+                                │ ← After c.Next()         │
+                                └──────────────────────────┘
+                                
+                                Response ↑

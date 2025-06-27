@@ -1,0 +1,80 @@
+In Go’s standard web library (net/http), middleware is not a built-in feature like 
+in other frameworks (e.g., Gin or Express). 
+
+However, Go’s powerful function composition and handler model allow us to build a 
+custom middleware architecture using wrapper functions.
+
+Middleware in net/http is typically written as a function that wraps an http.Handler 
+and returns another http.Handler. 
+This enables a chainable and modular request-processing pipeline.
+
+            func Middleware(next http.Handler) http.Handler {
+            	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            		// Pre-processing logic (before actual handler)
+            		next.ServeHTTP(w, r)
+            		// Post-processing logic (after actual handler)
+            	})
+            }
+🧱 Architecture Components
+http.Handler Interface
+                    -  Core abstraction for all handlers.
+                    -  Any object with a ServeHTTP(w http.ResponseWriter, 
+                      r *http.Request) method satisfies this.
+
+Middleware Function
+                   - A function that takes and returns http.Handler.
+                   - Adds reusable behavior like logging, 
+                    authentication, or panic recovery.
+
+Handler Chaining
+                Middleware wraps one another in sequence, 
+                forming a chain of responsibility.
+
+
+CHAINING MULTIPLE MIDDLEWARES
+          func LoggingMiddleware(next http.Handler) http.Handler {
+          	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+          		log.Println("Request:", r.URL.Path)
+          		next.ServeHTTP(w, r)
+          	})
+          }
+          
+          func AuthMiddleware(next http.Handler) http.Handler {
+          	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+          		if r.Header.Get("Authorization") != "valid-token" {
+          			http.Error(w, "Forbidden", http.StatusForbidden)
+          			return
+          		}
+          		next.ServeHTTP(w, r)
+          	})
+          }
+REGISTRING
+          func HelloHandler(w http.ResponseWriter, r *http.Request) {
+          	fmt.Fprintln(w, "Hello, World!")
+          }
+          
+          func main() {
+          	mux := http.NewServeMux()
+          	finalHandler := http.HandlerFunc(HelloHandler)
+          
+          	// Wrap handler with middleware (chain order matters)
+          	handlerWithMiddleware := LoggingMiddleware(AuthMiddleware(finalHandler))
+          
+          	mux.Handle("/", handlerWithMiddleware)
+          
+          	log.Println("Server running on :8080")
+          	http.ListenAndServe(":8080", mux)
+          }
+            
+
+
+              Incoming Request
+                   ↓
+              LoggingMiddleware → logs the request
+                   ↓
+              AuthMiddleware → checks Authorization header
+                   ↓
+              HelloHandler → actual business logic
+                   ↓
+              Response sent back
+

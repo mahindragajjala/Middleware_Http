@@ -1,0 +1,190 @@
+8.1_Chaining_Multiple_Middlewares
+
+
+🔷 What is Middleware Chaining?
+
+Chaining multiple middlewares means applying a series of middleware functions,
+one after another, to a single route or group of routes. 
+
+Each middleware performs some task (e.g., logging, authentication, CORS, etc.) 
+before calling the next one.
+
+Client --> Middleware 1 --> Middleware 2 --> Middleware 3 --> Final Handler --> Response
+
+
+                              func(c *gin.Context) {
+                                  // Before calling next middleware or handler
+                                  ...
+                              
+                                  c.Next() // Pass control to the next middleware
+                              
+                                  // After response from next middleware/handler
+                                  ...
+                              }
+
+
+GIN 
+How Middleware Chaining Works in Gin
+            You can attach multiple middlewares using:
+                      Globally:
+                      Applied to all routes.
+                      
+                      Route Group:
+                      Applied to specific group of routes.
+                      
+                      Individual Route:
+                      Applied to a single route.
+
+
+
+
+Chaining Three Middlewares:
+                            package main
+                            
+                            import (
+                            	"log"
+                            	"time"
+                            
+                            	"github.com/gin-gonic/gin"
+                            )
+                            
+                            // Middleware 1: Logger
+                            func LoggerMiddleware() gin.HandlerFunc {
+                            	return func(c *gin.Context) {
+                            		start := time.Now()
+                            		log.Println("[Logger] Before request")
+                            		c.Next() // call next middleware
+                            		log.Println("[Logger] After request")
+                            		log.Printf("[Logger] Duration: %s\n", time.Since(start))
+                            	}
+                            }
+                            
+                            // Middleware 2: Authentication
+                            func AuthMiddleware() gin.HandlerFunc {
+                            	return func(c *gin.Context) {
+                            		log.Println("[Auth] Checking token")
+                            		token := c.GetHeader("Authorization")
+                            		if token != "valid-token" {
+                            			log.Println("[Auth] Invalid token")
+                            			c.AbortWithStatusJSON(401, gin.H{"error": "unauthorized"})
+                            			return
+                            		}
+                            		log.Println("[Auth] Token OK")
+                            		c.Next()
+                            	}
+                            }
+                            
+                            // Middleware 3: Custom header injection
+                            func CustomHeaderMiddleware() gin.HandlerFunc {
+                            	return func(c *gin.Context) {
+                            		log.Println("[Header] Adding X-App-Version")
+                            		c.Writer.Header().Set("X-App-Version", "1.0.0")
+                            		c.Next()
+                            	}
+                            }
+                            
+                            func main() {
+                            	r := gin.Default()
+                            
+                            	// Apply all middlewares to this route
+                            	r.GET("/secure", LoggerMiddleware(), AuthMiddleware(), CustomHeaderMiddleware(), func(c *gin.Context) {
+                            		log.Println("[Handler] Serving response")
+                            		c.JSON(200, gin.H{"message": "Success"})
+                            	})
+                            
+                            	r.Run(":8080")
+                            }
+
+
+
+CALL FLOW OF MIDDLEWARE EXPLANATION
+    1️⃣ LoggerMiddleware:
+       - Logs start time
+       - Logs "Before request"
+       - Calls `c.Next()`
+    
+    2️⃣ AuthMiddleware:
+       - Checks token in header
+       - If invalid: Abort and return 401
+       - If valid: call `c.Next()`
+    
+    3️⃣ CustomHeaderMiddleware:
+       - Adds header X-App-Version
+       - call `c.Next()`
+    
+    4️⃣ Handler:
+       - Returns JSON "Success"
+
+
+WHY  WE USE MIDDLEWARE CHAINING?
+ Purpose                 Example Use                                
+ Reusability             Use same middleware on multiple routes     
+ Separation of Concerns  Keep logging, auth, error handling modular 
+ Execution Control       Stop flow early using `c.Abort()`          
+
+
+
+FOR ANOTHER END POINT WE CAN USE LIKE THESE :
+For a /dashboard endpoint:
+                          r.GET("/dashboard",
+                              RateLimitMiddleware(),
+                              AuthMiddleware(),
+                              RoleCheckMiddleware("admin"),
+                              LoggerMiddleware(),
+                              DashboardHandler,
+                          )
+Middleware chain:
+                Rate limit → Auth → Role check → Log → Serve page
+
+
+
+✅ Middleware chaining allows sequential, modular handling of 
+   request/response processing.
+✅ Each middleware can read/modify the request, or even abort the flow.
+✅ Gin makes chaining simple by passing multiple functions to routes or groups.
+
+                                ┌────────────┐
+                                │  CLIENT    │
+                                └────┬───────┘
+                                     │
+                                     ▼
+                                ┌────────────────────────────┐
+                                │ Middleware 1: Logger       │
+                                │  - Logs start              │
+                                │  - Calls c.Next()          │
+                                └────┬───────────────────────┘
+                                     │
+                                     ▼
+                                ┌────────────────────────────┐
+                                │ Middleware 2: Auth         │
+                                │  - Checks token            │
+                                │  - If invalid: Abort       │
+                                │  - If valid: c.Next()      │
+                                └────┬───────────────────────┘
+                                     │
+                                     ▼
+                                ┌────────────────────────────┐
+                                │ Middleware 3: CustomHeader │
+                                │  - Adds response headers   │
+                                │  - Calls c.Next()          │
+                                └────┬───────────────────────┘
+                                     │
+                                     ▼
+                                ┌────────────────────────────┐
+                                │     MAIN HANDLER           │
+                                │  - Processes final logic   │
+                                │  - Sends response          │
+                                └────┬───────────────────────┘
+                                     │
+                                     ▼
+                                ┌────────────────────────────┐
+                                │ Backward Flow:             │
+                                │  Middleware 3 Post-c.Next  │
+                                │  Middleware 2 Post-c.Next  │
+                                │  Middleware 1 Post-c.Next  │
+                                └────────────────────────────┘
+                                     │
+                                     ▼
+                                ┌────────────┐
+                                │  RESPONSE  │
+                                └────────────┘

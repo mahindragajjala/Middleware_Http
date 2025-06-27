@@ -1,0 +1,76 @@
+4.1_Reading_&_Modifying_Request_Headers
+
+ Header             Purpose                             Example                               
+ Host             Target hostname                     Host: www.example.com               
+ UserAgent        Info about client software          UserAgent: Mozilla/5.0 ...         
+ Accept           MIME types the client accepts       Accept: text/html, application/json 
+ AcceptLanguage   Preferred languages                 AcceptLanguage: enUS              
+ ContentType      Format of body being sent           ContentType: application/json      
+ ContentLength    Size of the request body            ContentLength: 349                 
+ Authorization    Credentials (e.g., Bearer token)    Authorization: Bearer <token>       
+ Cookie           Cookies sent to server              Cookie: sessionid=abc123            
+ Referer          Previous page link                  Referer: https://google.com         
+ Connection       Connection mode (keepalive/close)  Connection: keepalive              
+ Range            Request only part of resource       Range: bytes=0499                  
+
+
+You may read headers to:
+                        Perform security checks
+                        Log client metadata
+                        Enforce API versioning
+                        Localize content
+
+You may modify headers to:
+                        Inject tracing IDs
+                        Normalize headers
+                        Forward data to downstream services
+
+
+                                  package main
+                                  
+                                  import (
+                                  	"fmt"
+                                  	"github.com/gin-gonic/gin"
+                                  )
+                                  
+                                  func HeaderMiddleware() gin.HandlerFunc {
+                                  	return func(c *gin.Context) {
+                                  		// ✅ Read headers
+                                  		userAgent := c.GetHeader("User-Agent")
+                                  		authToken := c.GetHeader("Authorization")
+                                  
+                                  		fmt.Println("User-Agent:", userAgent)
+                                  		fmt.Println("Authorization Token:", authToken)
+                                  
+                                  		// ✅ Modify/add custom header (for downstream handlers)
+                                  		c.Request.Header.Set("X-Processed-By", "HeaderMiddleware")
+                                  
+                                  		c.Next()
+                                  	}
+                                  }
+                                  
+                                  func finalHandler(c *gin.Context) {
+                                  	// You can read the modified header too
+                                  	custom := c.GetHeader("X-Processed-By")
+                                  	c.JSON(200, gin.H{
+                                  		"message":         "Headers processed successfully",
+                                  		"processed-by":    custom,
+                                  	})
+                                  }
+                                  
+                                  func main() {
+                                  	router := gin.Default()
+                                  	router.Use(HeaderMiddleware())
+                                  
+                                  	router.GET("/check", finalHandler)
+                                  
+                                  	router.Run(":8080")
+                                  }
+
+ Flow of the Above Code:
+                        Client sends a request with headers like Authorization and User-Agent.
+                        Middleware reads and logs these headers.
+                        Middleware sets a new header X-Processed-By to HeaderMiddleware.
+                        Handler reads the new header and responds back.
+
+Test it : curl -H "User-Agent: Mozilla" -H "Authorization: Bearer abc123" http://localhost:8080/check

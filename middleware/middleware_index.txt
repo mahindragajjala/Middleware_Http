@@ -1,0 +1,128 @@
+
+ 🔰 1. Basics of Middleware
+
+1.1 What is Middleware?
+1.2 Why is Middleware used?
+1.3 Role of Middleware in Web Frameworks
+1.4 Middleware Architecture in Go (Standard `net/http`)
+1.5 Middleware Architecture in Gin Framework
+1.6 Middleware Execution Flow (Request Lifecycle)
+
+
+
+ 🚀 2. Creating Middleware in Golang
+
+2.1 Writing Custom Middleware (Standard `net/http`)
+2.2 Writing Custom Middleware (Gin Framework)
+2.3 Logging Middleware Example
+2.4 Header Modification Middleware
+2.5 Request Time Tracking Middleware
+2.6 Response Compression Middleware (Gzip)
+
+
+
+ 🔒 3. Authentication & Authorization Middleware
+
+3.1 Introduction to Auth Middleware
+3.2 JWTbased Authentication Middleware
+3.3 Basic Auth Middleware
+3.4 OAuth2 Token Verification Middleware
+3.5 Rolebased Authorization Middleware
+3.6 IP Whitelisting Middleware
+
+
+
+ ⚙️ 4. Request and Response Manipulation
+
+4.1 Reading & Modifying Request Headers
+4.2 Reading & Modifying Response Headers
+4.3 Request Context Injection
+4.4 Adding Custom Fields in Context
+4.5 Reading Body in Middleware (and Replacing)
+
+
+
+ 🧪 5. Error Handling & Recovery
+
+5.1 Centralized Error Handling via Middleware
+5.2 Panic Recovery Middleware (Graceful Failures)
+5.3 Global Exception Handling
+5.4 Sending Custom Error Responses
+
+
+
+ ⏱️ 6. Rate Limiting and Security Middleware
+
+6.1 Request Rate Limiting Middleware
+6.2 IP Blocking / Filtering Middleware
+6.3 CORS Middleware
+6.4 CSRF Protection Middleware
+6.5 Secure Headers Middleware (Helmetlike)
+
+
+
+ 🧰 7. Thirdparty Middleware Usage
+
+7.1 Popular Middleware Packages in Go
+7.2 Using Middleware from Gin Ecosystem
+7.3 `gorilla/handlers`
+7.4 `urfave/negroni`
+7.5 Integrating Prometheus / Metrics Middleware
+
+
+
+ 🧩 8. Middleware Composition and Reusability
+
+8.1 Chaining Multiple Middlewares
+8.2 Execution Order and Flow
+8.3 Reusable Middleware Templates
+8.4 Writing Reusable/Configurable Middleware
+
+
+
+ 🧵 9. Middleware Patterns & Architecture
+
+9.1 Decorator Pattern and Middleware
+9.2 Functional Middleware Pattern
+9.3 Middleware Pipeline Design
+9.4 Conditional Middleware Execution (based on route/role)
+9.5 Middleware per Group/Route (Gin Route Groups)
+
+
+
+ 🧪 10. Testing Middleware
+
+10.1 Unit Testing Custom Middleware
+10.2 Mocking Request/Response
+10.3 Using httptest in Go
+10.4 Verifying Context Injection and Header Output
+
+
+
+ 📦 11. Middleware in Microservices & Production
+
+11.1 Using Middleware in Go Microservices
+11.2 Observability Middleware (Logging, Tracing, Metrics)
+11.3 Distributed Tracing Middleware (OpenTelemetry)
+11.4 Middleware for Load Shedding
+11.5 Secure Middleware with TLS and Mutual TLS
+
+
+
+ 🛠️ 12. RealWorld Examples
+
+12.1 Gin Server with JWT Middleware
+12.2 CRUD API with Auth + Logging Middleware
+12.3 RoleBased Access Control via Middleware
+12.4 Middleware with Dockerized Go App
+12.5 Custom RateLimiter Middleware for APIs
+
+
+
+ 🔚 13. Best Practices & Optimization
+
+13.1 Keeping Middleware Lightweight
+13.2 Avoiding Side Effects in Middleware
+13.3 Performance Testing Middleware
+13.4 Middleware Versioning and Documentation
+13.5 Benchmarking Chained Middleware

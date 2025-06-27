@@ -1,0 +1,68 @@
+4.3_Request_Context_Injection
+
+Context injection means adding custom values 
+(e.g., user ID, token data, metadata) 
+into the request lifecycle via c.Set(key, value) so it can be accessed later in 
+handlers or downstream middleware.
+
+It's commonly used in:
+                    Authenticated user data propagation
+                    Tracing or correlation IDs
+                    Request-scoped metadata (like request ID, tenant ID)
+
+                                    package main
+                                    
+                                    import (
+                                    	"github.com/gin-gonic/gin"
+                                    )
+                                    
+                                    func InjectUserIDMiddleware() gin.HandlerFunc {
+                                    	return func(c *gin.Context) {
+                                    		// Simulate fetching user ID (from token, DB, etc.)
+                                    		userID := "user-101"
+                                    
+                                    		// Inject into context
+                                    		c.Set("userID", userID)
+                                    
+                                    		// Continue to next middleware/handler
+                                    		c.Next()
+                                    	}
+                                    }
+                                    
+                                    func ProfileHandler(c *gin.Context) {
+                                    	// Retrieve the injected value
+                                    	userIDVal, exists := c.Get("userID")
+                                    	if !exists {
+                                    		c.JSON(500, gin.H{"error": "user ID not found in context"})
+                                    		return
+                                    	}
+                                    	userID := userIDVal.(string)
+                                    
+                                    	c.JSON(200, gin.H{
+                                    		"message": "User profile fetched successfully",
+                                    		"userID":  userID,
+                                    	})
+                                    }
+                                    
+                                    func main() {
+                                    	router := gin.Default()
+                                    
+                                    	// Register context injection middleware
+                                    	router.Use(InjectUserIDMiddleware())
+                                    
+                                    	router.GET("/profile", ProfileHandler)
+                                    
+                                    	router.Run(":8080")
+                                    }
+
+
+                      Client ──> Middleware (inject userID into context)
+                              └──> Handler (reads userID from context) ──> Response
+
+ Injected Key  Used For                            
+ userID      Authorization, personalization      
+ traceID     Distributed tracing / observability 
+ requestID   Logging, debugging                  
+ tenantID    Multitenant filtering               
+ tokenData   User claims or role-based access    
+

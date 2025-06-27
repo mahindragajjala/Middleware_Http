@@ -1,0 +1,58 @@
+7.5_Integrating_Prometheus_/_Metrics_Middleware
+
+Integrating Prometheus for metrics collection in a Go (Gin) application helps you monitor 
+request count, duration, status codes, and more — crucial for production-ready systems.
+
+
+                          🧠 What is Prometheus Middleware?
+Prometheus middleware automatically collects HTTP request metrics and exposes them to 
+Prometheus at a specific endpoint (/metrics), allowing real-time performance monitoring.
+
+Go Package for prometheus integration:
+                github.com/zsais/go-gin-prometheus
+for custom setup:
+                github.com/prometheus/client_golang/prometheus
+                github.com/prometheus/client_golang/prometheus/promhttp
+
+
+Server code:
+              package main
+              
+              import (
+              	"github.com/gin-gonic/gin"
+              	ginprometheus "github.com/zsais/go-gin-prometheus"
+              	"net/http"
+              )
+              
+              func main() {
+              	r := gin.Default()
+              
+              	// Integrate Prometheus middleware
+              	p := ginprometheus.NewPrometheus("gin")
+              	p.Use(r)
+              
+              	// Define your normal routes
+              	r.GET("/hello", func(c *gin.Context) {
+              		c.JSON(http.StatusOK, gin.H{"message": "hello, Prometheus!"})
+              	})
+              
+              	// /metrics is automatically exposed
+              	r.Run(":8080")
+              }
+🌐 Now Visit:
+              http://localhost:8080/hello — will count requests.
+              http://localhost:8080/metrics — will show Prometheus metrics.
+
+
+Real-Time Use Case in Production
+                        - Track slow API responses
+                        - Set alerts for failure rate or high latency
+                        - Monitor usage across routes
+
+
+call flow :- 
+                  Browser --> GET /hello --> Gin Route
+                           --> Prometheus middleware tracks route, method, status
+                           --> Logs metrics in memory
+                  Prometheus Server --> Scrapes /metrics
+                  Grafana --> Visualizes metrics

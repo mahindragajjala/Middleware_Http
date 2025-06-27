@@ -1,0 +1,164 @@
+Definition:
+Middleware is a function or a set of functions that sit between the "incoming HTTP request"
+and the "final handler" that generates a response. 
+
+It processes requests before, after, or even instead of the main handler.
+
+
+📦 In simpler terms:
+Acts like "layers" or "filters".
+
+Think of an onion model — middleware layers wrap around the core logic.
+
+Can be used to:
+              Modify request/response
+              Add context
+              Handle errors
+              Authenticate users
+              Log traffic
+
+
+Client --> Middleware 1 --> Middleware 2 --> Final Handler --> Response
+
+
+
+Why Use Middleware?
+Middleware provides cross-cutting concerns, meaning functionality 
+that is used across different parts of the application:
+
+                         Use Case                  Purpose                              
+                         🪪 Authentication         Check if the user is logged in       
+                         🔒 Authorization          Check if the user has permission     
+                         🪵 Logging                Log requests and responses           
+                         ⏱️ Timeout/Rate limiting  Control over usage                   
+                         📦 Compression            Gzip/deflate responses               
+                         🔍 Request validation     Verify payload, headers              
+                         💬 CORS Handling          Handle Cross-Origin Resource Sharing 
+                         🧼 Request parsing        Convert JSON to structs              
+
+
+🧠 What is Middleware Execution Flow?
+Middleware execution flow defines how middleware functions are executed before and 
+after the actual request handler in a web framework.
+
+Think of it as a chain of functions that wrap around your request, pre-processing, intercepting, 
+or post-processing it.
+
+                                      Client Request
+                                           ↓
+                                      [Global Middleware 1]
+                                           ↓
+                                      [Global Middleware 2]
+                                           ↓
+                                      [Route-specific Middleware]
+                                           ↓
+                                      [Main Handler (Controller)]
+                                           ↑
+                                      [Post-processing Middleware (if any)]
+                                           ↑
+                                      Response Sent to Client
+
+🔍 In Go (Gin Framework)
+Gin uses a stack-based execution model, where each middleware calls c.Next()
+to move to the next middleware or handler.
+
+✅ Middleware Flow Example in Gin
+                                func MiddlewareA() gin.HandlerFunc {
+                                    return func(c *gin.Context) {
+                                        fmt.Println("👉 Before MiddlewareA")
+                                        c.Next()  // Call the next middleware/handler
+                                        fmt.Println("👈 After MiddlewareA")
+                                    }
+                                }
+                                
+                                func MiddlewareB() gin.HandlerFunc {
+                                    return func(c *gin.Context) {
+                                        fmt.Println("👉 Before MiddlewareB")
+                                        c.Next()
+                                        fmt.Println("👈 After MiddlewareB")
+                                    }
+                                }
+                                
+                                func FinalHandler(c *gin.Context) {
+                                    fmt.Println("🔥 Inside Final Handler")
+                                    c.String(200, "OK")
+                                }
+
+
+
+
+
+
+
+
+
+SIMPLE GOLANG CODE OF THE MIDDLEWARE
+package main
+
+import (
+    "fmt"
+    "github.com/gin-gonic/gin"
+    "time"
+)
+
+// Middleware function
+func LoggerMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        t := time.Now()
+
+        // Before request
+        fmt.Println("➡️ Before Handler: Request URL:", c.Request.URL.Path)
+
+        c.Next() // Pass on to the next-in-chain (can be handler or another middleware)
+
+        // After request
+        latency := time.Since(t)
+        fmt.Println("⏱️ After Handler: Latency:", latency)
+        fmt.Println("➡️ Response status:", c.Writer.Status())
+    }
+}
+
+func main() {
+    router := gin.Default()
+
+    // Register the middleware globally
+    router.Use(LoggerMiddleware())
+
+    // A simple GET endpoint
+    router.GET("/hello", func(c *gin.Context) {
+        c.JSON(200, gin.H{
+            "message": "Hello, Middleware!",
+        })
+    })
+
+    router.Run(":8080")
+}
+🔁 Request Flow Example
+                    You hit GET http://localhost:8080/hello
+                    
+                    Middleware logs:
+                    ➡️ Before Handler: Request URL: /hello
+                    Route /hello handler sends JSON: { "message": "Hello, Middleware!" }
+                    
+                    Middleware logs after:
+                    ⏱️ After Handler: Latency: 103.5µs
+                    ➡️ Response status: 200
+
+
+EXPLANATION OF THE CODE
+1. LoggerMiddleware()
+                      This is a custom middleware function.
+                      It logs:
+                      The request path before reaching the main handler
+                      The response time and status after the handler runs
+                      c.Next() is key — it tells Gin to:
+                      "Move forward" to the next middleware or route handler.
+
+2. router.Use(LoggerMiddleware())
+                      This attaches the middleware globally to every request.
+                      You could also attach it to specific routes like:
+                      router.GET("/hello", LoggerMiddleware(), handlerFunc)
+
+
+3. Middleware Execution Flow:
+                    Client --> LoggerMiddleware --> Handler (/hello) --> LoggerMiddleware After --> Response to Client

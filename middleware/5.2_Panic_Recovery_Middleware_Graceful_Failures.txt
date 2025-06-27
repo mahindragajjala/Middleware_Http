@@ -1,0 +1,37 @@
+5.2_Panic_Recovery_Middleware_Graceful_Failures
+
+In Go, a panic occurs when something goes terribly wrong (like nil dereference). 
+If you don’t handle it:
+                      The server crashes
+                      The user gets no response
+                      The logs become hard to trace
+                      A recovery middleware catches these panics and handles them gracefully.
+
+
+
+Panic vs Error
+ Category     `Error`                                 `Panic`                               
+ When?        Expected failure (e.g. file not found)  Unexpected failure (e.g. nil pointer) 
+ How to use?  Return error object                     Use `panic()` / auto panic            
+ Handling     Check `err != nil`                      Use `recover()` or Gin's recovery     
+
+Gin’s Built-in Recovery Middleware
+                            router := gin.New()
+                            router.Use(gin.Recovery())
+
+                            It catches all panics
+                            Logs the stack trace
+                            Returns HTTP 500 with a generic message
+
+Custom Recovery Middleware (Example)
+                        func CustomRecovery() gin.HandlerFunc {
+                        	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+                        		log.Printf("🔥 Panic caught: %v\n", recovered)
+                        
+                        		// Respond with JSON message
+                        		c.JSON(http.StatusInternalServerError, gin.H{
+                        			"error": "internal server error",
+                        		})
+                        		c.Abort()
+                        	})
+                        }

@@ -1,0 +1,137 @@
+6.5_Secure_Headers_Middleware
+
+
+                    🔐 What Are Secure Headers?
+Secure headers are special HTTP response headers that:
+  Protect the client browser from malicious content.
+  Help prevent common attacks like:
+                                  XSS (Cross-site Scripting)
+                                  Clickjacking
+                                  MIME sniffing
+                                  Mixed content
+
+
+
+
+
+
+                    🚀 Purpose of Secure Headers Middleware
+The Secure Headers Middleware:
+                - Intercepts every response from your server.
+                - Adds a set of HTTP security headers 
+                  before sending the response back to the client.
+
+
+
+
+
+
+                      Common Secure Headers You Should Add
+ Header                           Purpose                                                 
+ Strict-Transport-Security      Enforces HTTPS                                          
+ X-Frame-Options                Prevents Clickjacking                                   
+ X-Content-Type-Options         Prevents MIME-sniffing                                  
+ X-XSS-Protection               Enables XSS filters (deprecated, but still used)        
+ Content-Security-Policy (CSP)  Controls resources browser can load                     
+ Referrer-Policy                Controls the amount of referrer information sent        
+ Permissions-Policy             Controls access to browser features (camera, mic, etc.) 
+
+
+Conceptual Call Flow:
+                    CLIENT -------> [Request] -------> GIN SERVER
+                                                 ↓
+                                      Middleware Intercepts
+                                                 ↓
+                         Add Secure Headers (before response)
+                                                 ↓
+                    CLIENT <------- [Response + Secure Headers] <----- SERVER
+
+
+
+
+go code to add the secure headers using the middleware:
+                                package main
+                                
+                                import (
+                                    "github.com/gin-gonic/gin"
+                                    "net/http"
+                                )
+                                
+                                func SecureHeadersMiddleware() gin.HandlerFunc {
+                                    return func(c *gin.Context) {
+                                        // Add Secure Headers
+                                        c.Writer.Header().Set("X-Frame-Options", "DENY")
+                                        c.Writer.Header().Set("X-Content-Type-Options", "nosniff")
+                                        c.Writer.Header().Set("X-XSS-Protection", "1; mode=block")
+                                        c.Writer.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+                                        c.Writer.Header().Set("Referrer-Policy", "no-referrer")
+                                        c.Writer.Header().Set("Permissions-Policy", "geolocation=(), microphone=()")
+                                        c.Writer.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'")
+                                
+                                        c.Next() // Call the next middleware/handler
+                                    }
+                                }
+                                
+                                func main() {
+                                    r := gin.Default()
+                                
+                                    // Apply Secure Headers Middleware globally
+                                    r.Use(SecureHeadersMiddleware())
+                                
+                                    r.GET("/", func(c *gin.Context) {
+                                        c.String(http.StatusOK, "Hello, secure world!")
+                                    })
+                                
+                                    r.Run(":8080")
+                                }
+
+
+🛡️ Real-World Use Case
+   You're building a login page for a fintech app. Without secure headers:
+            Users might get phished using iframe attacks (Clickjacking).
+            Malicious JavaScript may load in the browser.
+            Sensitive data might be leaked via Referer.
+
+✅ With Secure Headers Middleware, you protect:
+        The UI from loading risky content.
+        User data from leaking.
+        Browser behavior from being manipulated.
+
+
+
+
+USING THE THIRD PARTY SECURE MIDDLEWARE LIBRARIES
+There are libraries like:
+                          github.com/unrolled/secure
+                          github.com/gin-contrib/secure
+
+                            import (
+                                "github.com/gin-gonic/gin"
+                                "github.com/unrolled/secure"
+                            )
+                            
+                            func main() {
+                                r := gin.Default()
+                            
+                                sec := secure.New(secure.Options{
+                                    FrameDeny:             true,
+                                    ContentTypeNosniff:    true,
+                                    BrowserXssFilter:      true,
+                                    ContentSecurityPolicy: "default-src 'self'",
+                                })
+                            
+                                r.Use(func(c *gin.Context) {
+                                    err := sec.Process(c.Writer, c.Request)
+                                    if err != nil {
+                                        c.AbortWithStatus(http.StatusInternalServerError)
+                                        return
+                                    }
+                                    c.Next()
+                                })
+                            
+                                r.GET("/", func(c *gin.Context) {
+                                    c.String(http.StatusOK, "Secure by default!")
+                                })
+                            
+                                r.Run(":8080")
+                            }

@@ -1,0 +1,277 @@
+CORS (Cross-Origin Resource Sharing) 
+CORS (Cross-Origin Resource Sharing) is a security feature implemented by web browsers 
+that controls how frontend code (running in a browser) can make requests to a backend 
+server hosted on a different origin (domain, protocol, or port).
+
+
+
+You are building a full-stack web application.
+Frontend is running on http://localhost:3000 (React app).
+Backend API is running on http://localhost:8080 (Gin + Go backend).
+
+When the React frontend tries to send a request to the Go backend 
+(cross-origin), the browser will block it unless the backend sets the proper CORS headers.
+
+React Frontend Calls API
+                        // React: http://localhost:3000
+                        fetch("http://localhost:8080/user", {
+                          method: "GET",
+                          credentials: "include", // to send cookies
+                          headers: {
+                            "Authorization": "Bearer <token>"
+                          }
+                        })
+🔥 What happens without CORS?
+The browser blocks the request with this error:
+Access to fetch at 'http://localhost:8080/user' from origin 'http://localhost:3000' has been blocked by CORS policy.
+
+
+
+                  CALL FLOW 
+ Component  URL / Domain             Tech Used            
+ Frontend   `http://localhost:3000`  React, Angular, etc. 
+ Backend    `http://localhost:8080`  Go + Gin REST API    
+ These are different origins, so CORS is involved.
+
+
+Let’s walk through a full example where:
+                                        The frontend calls an API like GET /user
+                                        The backend responds with user data
+
+1.User Action in Frontend
+                        // React frontend
+                        fetch("http://localhost:8080/user", {
+                          method: "GET",
+                          credentials: "include", // sends cookies if needed
+                          headers: {
+                            "Authorization": "Bearer <token>",
+                            "Content-Type": "application/json"
+                          }
+                        });
+💡 The browser sees this as a Cross-Origin Request and checks if it’s safe.
+
+2. Browser Preflight (OPTIONS) — if required
+For requests with:
+                  Custom headers (Authorization)
+                  Methods other than GET/POST
+                  Credentials (cookies)
+                  The browser sends a preflight request first.
+
+                  OPTIONS /user HTTP/1.1
+                  Origin: http://localhost:3000
+                  Access-Control-Request-Method: GET
+                  Access-Control-Request-Headers: Authorization
+
+3. Backend Receives Preflight
+        If CORS middleware is enabled, the backend responds:
+                    HTTP/1.1 204 No Content
+                    Access-Control-Allow-Origin: http://localhost:3000
+                    Access-Control-Allow-Methods: GET, POST
+                    Access-Control-Allow-Headers: Authorization
+                    Access-Control-Allow-Credentials: true
+✅ Browser is satisfied and proceeds with the actual request.
+
+4. Browser Sends Actual API Request
+                      GET /user HTTP/1.1
+                      Origin: http://localhost:3000
+                      Authorization: Bearer <token>
+
+5. Backend Logic Executes (Gin)
+            Go Gin processes the route:
+                            r.GET("/user", func(c *gin.Context) {
+                                token := c.GetHeader("Authorization")
+                                // Authenticate token, fetch user from DB
+                                c.JSON(200, gin.H{
+                                    "id": "101",
+                                    "name": "Mahindra",
+                                })
+                            })
+
+6. Backend Sends Response to Frontend
+                                    HTTP/1.1 200 OK
+                                    Access-Control-Allow-Origin: http://localhost:3000
+                                    Access-Control-Allow-Credentials: true
+                                    Content-Type: application/json
+                                    
+                                    {
+                                      "id": "101",
+                                      "name": "Mahindra"
+                                    }
+
+                        [Frontend] ----(1. fetch GET /user)----> [Browser]
+                        
+                        [Browser] ----(2. Preflight OPTIONS)----> [Backend]
+                        [Backend] <----(3. CORS Headers)--------- [Gin + Middleware]
+                        
+                        [Browser] ----(4. Real GET /user)-------> [Backend]
+                        [Backend] ----(5. JSON Response)--------> [Frontend]
+                        [Frontend] ----(6. UI Updates)----------> [User Sees Result]
+
+
+
+IN BACKEND GO MIDDLEWARE  
+          func CORSMiddleware() gin.HandlerFunc {
+          	return func(c *gin.Context) {
+          		c.Writer.Header().Set("Access-Control-Allow-Origin", "*") // allow all origins
+          		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+          		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
+          
+          		// Handle preflight request
+          		if c.Request.Method == "OPTIONS" {
+          			c.AbortWithStatus(204)
+          			return
+          		}
+          
+          		c.Next()
+          	}
+          }
+          func main() {
+          	r := gin.Default()
+          
+          	r.Use(CORSMiddleware()) // apply globally
+          
+          	r.GET("/ping", func(c *gin.Context) {
+          		c.JSON(200, gin.H{"message": "pong"})
+          	})
+          
+          	r.Run(":8080")
+          }
+🔹 c.Writer.Header().Set(...)
+Sets HTTP response headers that the browser checks to allow cross-origin requests.
+
+🔹 Access-Control-Allow-Origin: "*"
+"*" allows all domains to access your backend.
+
+For production, replace "*" with a specific domain like "http://example.com".
+
+🔹 Access-Control-Allow-Methods: "GET, POST, ..."
+Specifies which HTTP methods are permitted.
+
+🔹 Access-Control-Allow-Headers: "Content-Type, Authorization"
+Lists the custom headers the browser is allowed to send.
+
+
+🔹 Preflight Requests
+                      If the browser wants to:
+                      Use a method other than GET or POST
+                      Use custom headers
+                      Use cookies
+
+It sends a preflight OPTIONS request first.
+This is why we write:
+                      if c.Request.Method == "OPTIONS" {
+                      	c.AbortWithStatus(204)
+                      	return
+                      }
+🔧 Using github.com/gin-contrib/cors Package 
+
+                                import (
+                                	"github.com/gin-gonic/gin"
+                                	"github.com/gin-contrib/cors"
+                                	"time"
+                                )
+                                
+                                func main() {
+                                	r := gin.Default()
+                                
+                                	r.Use(cors.New(cors.Config{
+                                		AllowOrigins:     []string{"http://localhost:3000"},
+                                		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+                                		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+                                		ExposeHeaders:    []string{"Content-Length"},
+                                		AllowCredentials: true,
+                                		MaxAge:           12 * time.Hour,
+                                	}))
+                                
+                                	r.GET("/api", func(c *gin.Context) {
+                                		c.JSON(200, gin.H{"message": "This is CORS-enabled!"})
+                                	})
+                                
+                                	r.Run(":8080")
+                                }
+
+
+
+
+
+
+BACKEND :
+                                          package main
+                                          
+                                          import (
+                                          	"github.com/gin-contrib/cors"
+                                          	"github.com/gin-gonic/gin"
+                                          	"time"
+                                          )
+                                          
+                                          func main() {
+                                          	router := gin.Default()
+                                          
+                                          	// CORS middleware setup
+                                          	router.Use(cors.New(cors.Config{
+                                          		AllowOrigins:     []string{"http://localhost:3000"}, // allow frontend
+                                          		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+                                          		AllowHeaders:     []string{"Origin", "Content-Type"},
+                                          		AllowCredentials: true,
+                                          		MaxAge: 12 * time.Hour,
+                                          	}))
+                                          
+                                          	// Sample API endpoint
+                                          	router.GET("/api/message", func(c *gin.Context) {
+                                          		c.JSON(200, gin.H{
+                                          			"message": "Hello from Go backend!",
+                                          		})
+                                          	})
+                                          
+                                          	router.Run(":8080")
+                                          }
+FRONTEND:
+                                        <!DOCTYPE html>
+                                        <html>
+                                        <head>
+                                          <title>CORS Test</title>
+                                        </head>
+                                        <body>
+                                          <h1>CORS Demo</h1>
+                                          <button onclick="callAPI()">Call Backend</button>
+                                          <p id="output"></p>
+                                        
+                                          <script>
+                                            function callAPI() {
+                                              fetch("http://localhost:8080/api/message")
+                                                .then(response => response.json())
+                                                .then(data => {
+                                                  document.getElementById("output").innerText = data.message;
+                                                })
+                                                .catch(error => {
+                                                  document.getElementById("output").innerText = "CORS failed: " + error;
+                                                });
+                                            }
+                                          </script>
+                                        </body>
+                                        </html>
+
+
+[Frontend @ localhost:3000]
+     |
+     | 1. User clicks button ➜ JS triggers fetch to http://localhost:8080/api/message
+     |
+[Browser Security Policy]
+     |
+     | 2. Browser detects: "Hey! This is a cross-origin request"
+     |    → It automatically sends a "preflight" request (OPTIONS) to backend
+     |
+[Go Backend @ localhost:8080]
+     |
+     | 3. Backend checks CORS middleware:
+     |    - Is origin (localhost:3000) allowed? ✅ Yes
+     |    - Is method allowed (GET)? ✅ Yes
+     |    - Set `Access-Control-Allow-Origin` in response header
+     |
+     | 4. Preflight successful → actual GET request sent
+     |
+     | 5. Backend handles GET /api/message and returns JSON: { "message": "Hello from Go backend!" }
+     |
+[Frontend @ Browser]
+     |
+     | 6. JavaScript receives data → shows message on screen

@@ -1,0 +1,64 @@
+4.2_Reading_&_Modifying_Response_Headers
+
+2.RESPONSE HEADER
+These are sent by the server to the client to describe:
+      the result of the request
+      metadata about the server and payload
+      caching, compression, and connection rules
+ Header                         Purpose                           Example                                       
+ ContentType                 MIME type of the response         ContentType: application/json              
+ ContentLength               Body length in bytes              ContentLength: 512                         
+ SetCookie                   Set a cookie on the client        SetCookie: sessionid=xyz; Path=/; HttpOnly 
+ CacheControl                Caching rules                     CacheControl: nocache                     
+ ETag                        Unique ID for a resource version  ETag: "abc123"                              
+ Location                    Used with 3xx redirects           Location: https://newsite.com               
+ WWWAuthenticate             Server demands credentials        WWWAuthenticate: Basic realm="Login"       
+ Server                      Server software info              Server: nginx/1.20.0                        
+ ContentEncoding             Compression used                  ContentEncoding: gzip                      
+ AccessControlAllowOrigin    CORS policy                       AccessControlAllowOrigin: *              
+ RetryAfter                  When to retry after 429/503       RetryAfter: 120                            
+
+
+                                package main
+                                
+                                import (
+                                	"github.com/gin-gonic/gin"
+                                )
+                                
+                                func ResponseHeaderMiddleware() gin.HandlerFunc {
+                                	return func(c *gin.Context) {
+                                		// Proceed to the handler
+                                		c.Next()
+                                
+                                		// ✅ Modify/add response headers **after** handler executes
+                                		c.Header("X-Powered-By", "Gin-Middleware")
+                                		c.Header("X-Custom-Meta", "ResponseHeaderAdded")
+                                		c.Header("Cache-Control", "no-store")
+                                	}
+                                }
+                                
+                                func finalHandler(c *gin.Context) {
+                                	c.JSON(200, gin.H{
+                                		"message": "Response headers added successfully!",
+                                	})
+                                }
+                                
+                                func main() {
+                                	router := gin.Default()
+                                	router.Use(ResponseHeaderMiddleware())
+                                
+                                	router.GET("/response", finalHandler)
+                                
+                                	router.Run(":8080")
+                                }
+
+
+🧠 Call Flow:
+Client sends a GET request to /response.
+Gin executes the handler first.
+After c.Next(), the middleware sets extra headers.
+Client receives:
+              X-Powered-By
+              X-Custom-Meta
+              Cache-Control
+
